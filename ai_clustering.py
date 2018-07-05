@@ -1,4 +1,4 @@
-#!/home/glodia/.pyenv/versions/3.6.5/bin/python
+#!/home/tgoto/.pyenv/versions/3.6.5/bin/python
 # -*- coding: utf-8 -*-
 
 import pandas as pd
@@ -12,12 +12,12 @@ import glob
 import csv
 import subprocess
 
-filetype = "v5dcwe-01_traffic_out_1593_average_60sec.csv"
+filetype = "wholesale.csv"
 pwd = os.getcwd() + "/"
 outdir = pwd + "result/"
 filepath=pwd + filetype
 
-N_CLUSTERS = 3
+N_CLUSTERS = 4
 
 #データセット読込
 df = pd.read_csv(filepath, encoding="SHIFT-JIS")
@@ -27,8 +27,12 @@ df = df.dropna()
 #df.index = df.index.map(lambda x: dt.datetime.strptime(df.loc[x].DATE + " " + df.loc[x].TIME, "%Y-%m-%d %H:%M:%S"))
 
 #データフレームからNumpyの行列に変換
-df_array = np.array([df['INPUT'].tolist(),
-                     df['OUTPUT'].tolist()],np.float32)
+df_array = np.array([df['Fresh'].tolist(),
+                     df['Milk'].tolist(),
+		     df['Grocery'].tolist(),
+		     df['Frozen'].tolist(),
+                     df['Detergents_Paper'].tolist(),
+                     df['Delicassen'].tolist()],np.float32)
 
 #df_arrayの転置行列
 df_array = df_array.T
