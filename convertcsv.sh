@@ -1,5 +1,5 @@
 #!/bin/bash
-files="/home/mailab/*.rrd"
+files="/home/hoge/*.rrd"
 startstr='<database>'
 endstr='<\/database>'
 tagstr='<cf>'
