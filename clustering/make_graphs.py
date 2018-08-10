@@ -1,4 +1,4 @@
-#!/home/glodia/.pyenv/versions/3.6.5/bin/python
+#!/home/hoge/.pyenv/versions/3.6.5/bin/python
 # -*- coding: utf-8 -*-
 
 import pandas as pd
