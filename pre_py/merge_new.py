@@ -9,7 +9,7 @@ import os
 import datetime as dt
 import glob
 
-files = glob.glob("trend_data*.csv")
+files = glob.glob("trend_cpu*.csv")
 headerlist = []
 datalist = []
 time = []
@@ -23,7 +23,7 @@ def check_file(tmpfile):
 #各CSVをひとつのCSVにまとめて出力する
 for i, file in enumerate(files):
     name, _ = os.path.splitext(os.path.basename(file))
-    name    = name.replace("trend_data_", "")
+    name    = name.replace("trend_cpu_", "")
     name    = pd.to_datetime(name, format='%Y-%m-%d')
     year    = name.year
     month   = name.month
