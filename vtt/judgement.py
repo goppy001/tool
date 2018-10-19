@@ -14,35 +14,22 @@ from datetime import datetime as dt
 from vtt import basic, extract, statistics, threshold, vtt
 
 
-def find(arg_file_path):
-    for root, dirs, csvs in os.walk(arg_file_path):
-        yield root
-        for csv in csvs:
-            yield os.path.join(root, csv)
-
-
 TARGET_WORD = 'trend_cpu_'
 target_files = glob.glob(TARGET_WORD + "*.csv")
 list = []
 
+#resultディレクトリチェック作成
+result_dir = "./result"
+basic.check_dir(result_dir)
+
 #計算結果用ディレクトリ作成
-work_dir = "./vtt"
+work_dir = result_dir + "/vtt"
 basic.check_dir(work_dir)
-#ログディレクトリ
-result_log_path = work_dir + "/result_log"
-basic.check_dir(result_log_path)
+
 #計算用ファイルのディレクトリ存在チェック・作成
 calc_dir = work_dir + "/data"
 basic.check_dir(calc_dir)
-#学習データディレクトリ
-learn_dir = work_dir + "/learn"
-basic.check_dir(learn_dir)
-#履歴ディレクトリ
-history = work_dir + "/history"
-basic.check_dir(history)
 
-#対象外ディレクトリリスト
-exception_list = [work_dir, result_log_path, calc_dir, learn_dir, history, history + "/png", history + "/csv"]
 
 #学習ファイル定義
 learn_name = "default_learn.csv"
@@ -53,13 +40,26 @@ if os.path.isfile(learn_file):
 else:
     shutil.move(learn_name, work_dir)
 
-
 #計算用ファイルのコピペ
 ###ここから###
 target_dir = "./"
+exception_dir = result_dir
+
+# 特定のディレクトリを対象外としてリストを構成する
+target_files = []
+if os.path.isdir(exception_dir):
+    for root, dirs, files in os.walk(target_dir):
+        dirs[:] = [d for d in dirs if exception_dir not in os.path.join(root, d)]
+        targets = [os.path.join(root, f) for f in files]
+        target_files.extend(targets)
+
+tmp_list = []
+dir_list = []
 target_list = []
 size_list = []
-for csvfile in find(target_dir):
+
+#csvファイルだけ探してリスト再構築
+for csvfile in target_files:
     name, ext = os.path.splitext(os.path.basename(csvfile))
     if ext == ".csv":
         df = pd.read_csv(str(csvfile), index_col=0)
@@ -67,14 +67,10 @@ for csvfile in find(target_dir):
         size_list.append(df_data.shape[0])
         target_list.append(csvfile)
 
-#各CSVをひとつのCSVにまとめて出力する
-tmp_list = []
-dir_list = []
+#対象外ディレクトリリスト
 for i, file in enumerate(target_list):
     dire = os.path.dirname(file)
     if size_list[i] < max(size_list):
-        continue
-    if any(dire == arg for arg in exception_list):
         continue
     else:
         name, _ = os.path.splitext(os.path.basename(file))
@@ -163,7 +159,7 @@ SERVICE = 'cpu' #対象となるサービス名
 LIMIT_TIMES = 3 #しきい値を連続何回超えたら「しきい値超え」とみなすかの限界値(x >= LIMIT_TIMES で発動)
 prev_data = []
 
-log_threshold = open("threshold_log.txt", 'a')
+log_threshold = open(work_dir + "/threshold_log.txt", 'a')
 
 #各ファイルに対して閾値判定を実施
 for i, file in enumerate(target_files):
@@ -198,7 +194,9 @@ for i, file in enumerate(target_files):
     df_data = df_data.values
     diff_up = df_data - up_th
     diff_lw = df_data - lw_th
-
+    #ログディレクトリ
+    result_log_path = work_dir + "/result_log"
+    basic.check_dir(result_log_path)
     log = open(result_log_path + "/result_log_" + name + ".txt", 'a')
     judge_up = []
     judge_lw = []
@@ -262,10 +260,11 @@ for i, file in enumerate(target_files):
     #閾値が超えていなければ閾値を更新するのでその処理を記述
     else:
         #learn_fileをここで更新することで次回閾値は学習結果を使うことになる
- 
+        learn_dir = work_dir + "/learn"
+        basic.check_dir(learn_dir)
         new_learn_file = learn_dir + "/" + learn_file
         if basic.check_dir(learn_dir):
-            learn_file = threshold.update(d, file, df_data, new_learn_file, target_word=TARGET_WORD)
+            learn_file = threshold.update(d, file, df_data, new_learn_file, work_dir, target_word=TARGET_WORD)
         else:
             learn_file = threshold.update(d, file, df_data, learn_file, work_dir, target_word=TARGET_WORD)
         log_write = log_threshold.write(str(i) + ": " + str(name) + "でしきい値を変更しました。" + '\n')

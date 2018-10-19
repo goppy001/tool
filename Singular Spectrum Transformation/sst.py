@@ -1,4 +1,4 @@
-#!/home/hogehoge/.pyenv/versions/3.6.5/bin/python
+
 # -*- coding: utf-8 -*-
 
 import pandas as pd
@@ -8,12 +8,81 @@ mpl.use('Agg')
 import matplotlib.pyplot as plt
 import glob
 import os
+import re
 
 def check_dir(dirpath):
     if os.path.isdir(dirpath):
         pass
     else:
         os.mkdir(dirpath)
+
+target_dir = "./"
+result_dir = "./result"
+exception_dir = result_dir
+check_dir(result_dir)
+
+# 特定のディレクトリを対象外としてリストを構成する
+target_files = []
+if os.path.isdir(exception_dir):
+    for root, dirs, files in os.walk(target_dir):
+        dirs[:] = [
+            d for d in dirs if exception_dir not in os.path.join(root, d)]
+        targets = [os.path.join(root, f) for f in files]
+        target_files.extend(targets)
+
+size_list = []
+target_list = []
+for csvfile in target_files:
+    name, ext = os.path.splitext(os.path.basename(csvfile))
+    if ext == ".csv":
+        df = pd.read_csv(str(csvfile), index_col=0)
+        df_data = df.iloc[:, 1].values
+        size_list.append(df_data.shape[0])
+        target_list.append(csvfile)
+
+dir_list = []
+tmp_list = []
+# 次元数調整（次元が小さい日時データはクラスタリングの対象外とする）
+for i, file in enumerate(target_list):
+    if size_list[i] < max(size_list):
+        continue
+    else:
+        name, _ = os.path.splitext(os.path.basename(file))
+        name = name.replace("trend_cpu_", "")
+        rename = pd.to_datetime(name, format='%Y-%m-%d')
+        rename_pattern = "(.*) (.*)"
+        d = re.search(str(rename_pattern), str(rename))
+        dd = d.group(1).split("-")
+        ddl = [dd[0], dd[1]]
+        date = "-".join(ddl)
+        dir_name = os.path.dirname(file)
+        dir_list.append(date)
+        dir_list = sorted(dir_list)
+        tmp_list.append(d.group(1))
+        tmp_list = sorted(tmp_list)
+
+re_list = []
+re_dir_list = []
+# 上記ソートだけではだめなので文字型の日付をdatetime型に変換してリストに再代入
+for file in tmp_list:
+    name = pd.to_datetime(file, format='%Y-%m-%d')
+    rename = '{d.year}-{d.month}-{d.day}'.format(d=name)
+    re_list.append(rename)
+
+# ディレクトリ名をソート
+for file in dir_list:
+    name = file.replace("./", "")
+    name = pd.to_datetime(name, format='%Y-%m')
+    rename = '{d.year}-{d.month}'.format(d=name)
+    re_dir_list.append(rename)
+red_dir_list = sorted(re_dir_list)
+
+target_files = ["./" + re_dir_list[i] + "/trend_cpu_" +
+                str(tf) + ".csv" for i, tf in enumerate(re_list)]
+
+######################################################################
+###以下、メイン処理###
+######################################################################
 
 #窓関数を定義する
 def embed(data, size):
@@ -24,12 +93,13 @@ def embed(data, size):
         window = np.append(window, np.array([new_window]), axis=0)
     return window
 
-dir_csv = "./sst_CSV"
-dir_png = "./sst_PNG"
-target_file = glob.glob("trend_cpu_20*.csv")
+work_dir = "sst"
+work_dir = result_dir + "/" + work_dir
+check_dir(work_dir)
+dir_csv = work_dir + "/csv"
+dir_png = work_dir + "/png"
 
-
-for file in target_file:
+for file in target_files:
     df_all = pd.read_csv(file, index_col=0)
     df_all = df_all.dropna()
     name, _ = os.path.splitext(os.path.basename(file))
@@ -92,9 +162,9 @@ for file in target_file:
     ax1.set_ylabel('degre of change')
     ax1.set_ylim(0, 1.2)
     p2, = ax2.plot(data, '-g')
-    ax2.set_ylabel('oveserved')
+    ax2.set_ylabel('trend')
     plt.title("Singular Spectrum Transformation")
-    ax1.legend([p1, p2], ["degree of change", "observed"])
+    ax1.legend([p1, p2], ["degree of change", "trend"])
     check_dir(dir_png)
     plt.savefig(dir_png + '/result_sst_' + name + '_.png')
     plt.close()

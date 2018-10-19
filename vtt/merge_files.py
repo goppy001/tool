@@ -8,6 +8,7 @@ import glob
 import re
 import datetime
 
+exception_dir  = "./result"
 target_dir = "./"
 headerlist = []
 datalist = []
@@ -15,23 +16,18 @@ tmp_list = []
 d = 91
 d_idx = d-1
 
-#ディレクトリ以下のファイルを対象とするのに必要
-def find(arg_file_path):
-    for root, dirs, csvs in os.walk(arg_file_path):
-        yield root
-        for csv in csvs:
-            yield os.path.join(root, csv)
+# 特定のディレクトリを対象外としてリストを構成する
+target_files = []
+if os.path.isdir(exception_dir):
+    for root, dirs, files in os.walk(target_dir):
+        dirs[:] = [
+            d for d in dirs if exception_dir not in os.path.join(root, d)]
+        targets = [os.path.join(root, f) for f in files]
+        target_files.extend(targets)
 
-#マージファイルの存在チェック、あれば消す
-if os.path.isfile("default_learn.csv"):
-    os.remove("default_learn.csv")
-else:
-    pass
-
-
-target_list = []
 size_list = []
-for csvfile in find(target_dir):
+target_list = []
+for csvfile in target_files:
     name, ext = os.path.splitext(os.path.basename(csvfile))
     if ext == ".csv":
         df = pd.read_csv(str(csvfile), index_col=0)

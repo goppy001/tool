@@ -6,18 +6,16 @@ import numpy as np
 import os
 import glob
 
-# 作業対象ファイル
+#作業対象ファイル
 old_category = "all"
-# あたらしいなまえ
+#あたらしいなまえ
 new_category = "ave"
-
 
 def check_file(tmpfile):
     if os.path.isfile(tmpfile):
         os.remove(tmpfile)
     else:
         pass
-
 
 files = glob.glob("*.csv")
 datalistall = []
@@ -38,7 +36,7 @@ for i, f in enumerate(files):
     all_list = [hostname, servicename, new_category, status, pace]
     rename = "_".join(all_list) + ".csv"
 
-    # allが入っているファイルが対象
+    #allが入っているファイルが対象
     if serv_no == old_category:
         # pandas処理のためデータフレーム化
         df = pd.read_csv(f, index_col=0)
@@ -47,18 +45,18 @@ for i, f in enumerate(files):
         data2 = df.iloc[:, 2].values
         data3 = df.iloc[:, 3].values
         data4 = df.iloc[:, 4].values
-        datalistall.append([data1, data2, data3, data4])
-        datalist = np.average(datalistall, axis=1)
+        datalistall.append([data1,data2,data3,data4])
+        datalist = np.average(datalistall,axis=1)
 
         datetime = pd.DataFrame(datetime)
         datalist = pd.DataFrame(datalist)
         datalist = datalist.T
 
-        df = pd.concat([datetime, datalist], axis=1)
+        df = pd.concat([datetime,datalist], axis=1)
 
         df = pd.DataFrame(df)
 #        df = pd.DataFrame(df,columns=['DATETIME','cpu_average'])
-        df.columns = ['DATETIME', 'cpu_average']
+        df.columns = ['DATETIME','cpu_average']
 
         # 結合ファイルを出力
         df.to_csv(rename)
