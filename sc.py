@@ -6,6 +6,7 @@ import os
 import requests
 import re
 import math
+import numpy as np
 
 url_txt = "url.txt"
 
@@ -84,14 +85,29 @@ for line in open_txt:
         re_salary.append(salary)
 
     # 給料を数値化し計算できる状態にする
+    under_array = np.array([])
+    limit_array = np.array([])
     for salary in re_salary:
         under_salary = salary[0]
-        if salary[1] == "":
-            pass
-        else:
+        if salary[1] != "":
             limit_salary = salary[1]
+            separate_limit = limit_salary.split("万")
+            if separate_limit[1] != "":
+                limit_salary_num = re.sub(r'\D', '', separate_limit[0])
+                separate_limit_num = re.sub(r'\D', '', separate_limit[1])
+                separate_limit_size = int(math.log10(int(separate_limit_num)) + 1)
+                #抽出した給料の桁数に応じて処理
+                if separate_limit_size == 1:
+                    separate_limit[1] = float(separate_limit_num) / 10
+                    separate_limit[0] = float(limit_salary_num) + separate_limit[1]
+                    limit_salary = str(separate_limit[0])
+                if separate_limit_size == 4:
+                    separate_limit[1] = float(separate_limit_num) / 100000
+                    separate_limit[0] = float(limit_salary_num) + separate_limit[1]
+                    limit_salary = str(separate_limit[0])
+        else:
+            limit_salary = str(0)
         separate_under = under_salary.split("万")
-        separate_limit = limit_salary.split("万")
         # 万より下の端数がある場合の処理
         if separate_under[1] != "":
             under_salary_num = re.sub(r'\D', '', separate_under[0])
@@ -108,24 +124,27 @@ for line in open_txt:
                 under_salary = str(separate_under[0])
         else:
             pass
-        if separate_limit[1] != "":
-            limit_salary_num = re.sub(r'\D', '', separate_limit[0])
-            separate_limit_num = re.sub(r'\D', '', separate_limit[1])
-            separate_limit_size = int(math.log10(int(separate_limit_num)) + 1)
-            # 抽出した給料の桁数に応じて処理
-            if separate_limit_size == 1:
-                separate_limit[1] = float(separate_limit_num) / 10
-                separate_limit[0] = float(limit_salary_num) + separate_limit[1]
-                limit_salary = str(separate_limit[0])
-            if separate_limit_size == 4:
-                separate_limit[1] = float(separate_limit_num) / 10000
-                separate_limit[0] = float(limit_salary_num) + separate_limit[1]
-                limit_salary = str(separate_limit[0])
-        else:
-            pass
         under_salary_num = under_salary.replace("月給", "")
         under_salary_num = under_salary_num.replace("万", "")
         limit_salary_num = limit_salary.replace("月給", "")
         limit_salary_num = limit_salary_num.replace("～", "")
         limit_salary_num = limit_salary_num.replace("万", "")
-        print(under_salary_num, limit_salary_num)
+        under_salary_num = float(under_salary_num)
+        limit_salary_num = float(limit_salary_num)
+        under_array = np.append(under_array, under_salary_num)
+        limit_array = np.append(limit_array, limit_salary_num)
+
+    #平均値を求める
+    under_array = under_array[~np.isnan(under_array)]
+    under_ave  = np.average(under_array)
+    limit_array = limit_array[~(limit_array == 0)]
+    limit_ave  = np.average(limit_array)
+    under_array_size = under_array.shape[0]
+    limit_array_size = limit_array.shape[0]
+    print("計算に使った下限月収の数は" + str(under_array_size) + "個です。")
+    print("下限月収平均: " + str(round(under_ave, 2)) + "万円です。")
+    print("計算に使った上限月収の数は" + str(limit_array_size) + "個です。")
+    print("上限月収平均: " + str(round(limit_ave, 2)) + "万円です。")
+
+
+
